@@ -265,6 +265,9 @@ def introspect_nodes(in_band, ironic_client, nodes,
             introspect_nodes(False, ironic_client, bad_nodes,
                              transition_nodes=False)
 
+    for node in nodes:
+        assign_physcial_port(ironic_client, node)
+
     if transition_nodes:
         nodes = transition_to_state(ironic_client, nodes,
                                     'provide', 'available')
@@ -273,6 +276,20 @@ def introspect_nodes(in_band, ironic_client, nodes,
         # FIXME: Remove this hack when OOB introspection is fixed
         for node in nodes:
             delete_non_pxe_ports(ironic_client, node)
+
+
+def assign_physcial_port(ironic_client, node):
+    ip = CredentialHelper.get_drac_ip(node)
+
+    for port in ironic_client.node.list_ports(node.uuid):
+        if port.address.lower() == \
+                node.properties["provisioning_mac"].lower():
+            logger.info("Assigning ctlplane to port {} ({}) {}".format(
+                ip, node.uuid, port.address.lower()))
+            cmd = "openstack baremetal port set --physical-network ctlplane {}".format(
+                port.uuid)
+            logger.info("Running: {}".format(cmd))
+            os.system(cmd)
 
 
 def delete_non_pxe_ports(ironic_client, node):
