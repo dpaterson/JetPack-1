@@ -23,7 +23,6 @@ from credential_helper import CredentialHelper
 from ironic_helper import IronicHelper
 from logging_helper import LoggingHelper
 from time import sleep
-from update_ssh_config import get_nodes
 
 common_path = os.path.join(os.path.expanduser('~'), 'common')
 sys.path.append(common_path)
@@ -42,6 +41,16 @@ def parse_arguments():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     ArgHelper.add_inband_arg(parser)
+
+    parser.add_argument('-u', '--uuid',
+                        help='Only preapre single node by UUID',
+                        required=False)
+
+    parser.add_argument('-p', '--physical-network',
+                        help='Assign this physical network to the ironic port',
+                        required=False,
+                        default='ctlplane')
+
     LoggingHelper.add_argument(parser)
 
     return parser.parse_args()
@@ -62,9 +71,17 @@ def is_introspection_oob(in_band, node, logger):
     return out_of_band
 
 
-def get_nodes(ironic_client):
-    return ironic_client.node.list(detail=True)
+def get_nodes(ironic_client, single_uuid=None):
+    nodes = ironic_client.node.list(detail=True)
 
+    if single_uuid is not None:
+        filtered_nodes = []
+        for node in nodes:
+            if node.uuid == single_uuid:
+                filtered_nodes.append(node)
+        nodes = filtered_nodes
+
+    return nodes
 
 def refresh_nodes(ironic_client, nodes):
     node_uuids = [node.uuid for node in nodes]
@@ -128,7 +145,7 @@ def ib_introspect(node):
                                CredentialHelper.get_drac_ip(node), node.uuid))
 
 
-def introspect_nodes(in_band, ironic_client, nodes,
+def introspect_nodes(in_band, ironic_client, nodes, physical_network,
                      transition_nodes=True):
     # Check to see if provisioning_mac has been set on all the nodes
     bad_nodes = []
@@ -266,7 +283,7 @@ def introspect_nodes(in_band, ironic_client, nodes,
                              transition_nodes=False)
 
     for node in nodes:
-        assign_physcial_port(ironic_client, node)
+        assign_physcial_port(ironic_client, node, physical_network)
 
     if transition_nodes:
         nodes = transition_to_state(ironic_client, nodes,
@@ -278,16 +295,16 @@ def introspect_nodes(in_band, ironic_client, nodes,
             delete_non_pxe_ports(ironic_client, node)
 
 
-def assign_physcial_port(ironic_client, node):
+def assign_physcial_port(ironic_client, node, physical_network):
     ip = CredentialHelper.get_drac_ip(node)
 
     for port in ironic_client.node.list_ports(node.uuid):
         if port.address.lower() == \
                 node.properties["provisioning_mac"].lower():
-            logger.info("Assigning ctlplane to port {} ({}) {}".format(
-                ip, node.uuid, port.address.lower()))
-            cmd = "openstack baremetal port set --physical-network ctlplane {}".format(
-                port.uuid)
+            logger.info("Assigning {} to port {} ({}) {}".format(
+                physical_network, ip, node.uuid, port.address.lower()))
+            cmd = "openstack baremetal port set --physical-network {} {}".format(
+                physical_network, port.uuid)
             logger.info("Running: {}".format(cmd))
             os.system(cmd)
 
@@ -312,9 +329,10 @@ def main():
     LoggingHelper.configure_logging(args.logging_level)
 
     ironic_client = IronicHelper.get_ironic_client()
-    nodes = get_nodes(ironic_client)
+    nodes = get_nodes(ironic_client, args.uuid)
 
-    introspect_nodes(args.in_band, ironic_client, nodes)
+    introspect_nodes(args.in_band, ironic_client,
+                     nodes, args.physical_network)
 
 
 if __name__ == "__main__":
