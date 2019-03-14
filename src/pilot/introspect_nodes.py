@@ -42,8 +42,8 @@ def parse_arguments():
 
     ArgHelper.add_inband_arg(parser)
 
-    parser.add_argument('-u', '--uuid',
-                        help='Only preapre single node by UUID',
+    parser.add_argument('-a', '--ip-or-mac-address',
+                        help='Only preapre single node by ID',
                         required=False)
 
     parser.add_argument('-p', '--physical-network',
@@ -71,17 +71,17 @@ def is_introspection_oob(in_band, node, logger):
     return out_of_band
 
 
-def get_nodes(ironic_client, single_uuid=None):
-    nodes = ironic_client.node.list(detail=True)
+def get_nodes(ironic_client, ip_or_mac_address=None):
 
-    if single_uuid is not None:
-        filtered_nodes = []
-        for node in nodes:
-            if node.uuid == single_uuid:
-                filtered_nodes.append(node)
-        nodes = filtered_nodes
-
-    return nodes
+    if ip_or_mac_address is not None:
+        nodes = []
+        node = IronicHelper.get_ironic_node(ironic_client,
+                                        ip_or_mac_address)
+        if node is not None:
+            nodes.append(node)
+        return nodes
+    else:
+        return ironic_client.node.list(detail=True)
 
 def refresh_nodes(ironic_client, nodes):
     node_uuids = [node.uuid for node in nodes]
@@ -329,7 +329,7 @@ def main():
     LoggingHelper.configure_logging(args.logging_level)
 
     ironic_client = IronicHelper.get_ironic_client()
-    nodes = get_nodes(ironic_client, args.uuid)
+    nodes = get_nodes(ironic_client, args.ip_or_mac_address)
 
     introspect_nodes(args.in_band, ironic_client,
                      nodes, args.physical_network)

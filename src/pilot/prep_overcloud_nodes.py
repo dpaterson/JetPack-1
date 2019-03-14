@@ -19,6 +19,7 @@ import logging
 import os
 import sys
 import subprocess
+from ironic_helper import IronicHelper
 from logging_helper import LoggingHelper
 from credential_helper import CredentialHelper
 
@@ -30,8 +31,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description="Prepares the overcloud nodes.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-u', '--uuid',
-                        help='Only preapre single node by UUID',
+    parser.add_argument('-a', '--ip-or-mac-address',
+                        help='Only preapre single node by ID',
                         required=False)
 
     LoggingHelper.add_argument(parser)
@@ -44,14 +45,19 @@ def main():
 
     LoggingHelper.configure_logging(args.logging_level)
 
-    cmd = "source ~/stackrc;openstack baremetal node list -f value -c UUID"
+    ironic_client = IronicHelper.get_ironic_client()
 
-    if args.uuid is not None:
-        cmd += "| grep " + args.uuid
+    nodes = ""
+    if args.ip_or_mac_address is not None:
+        node = IronicHelper.get_ironic_node(ironic_client,
+                                        args.ip_or_mac_address)
+        nodes += node.uuid
 
-    nodes = subprocess.check_output(cmd,
-                                    stderr=subprocess.STDOUT,
-                                    shell=True)
+    else:
+        cmd = "source ~/stackrc;openstack baremetal node list -f value -c UUID"
+        nodes = subprocess.check_output(cmd,
+                                        stderr=subprocess.STDOUT,
+                                        shell=True)
 
     for node in nodes.splitlines():
         if len(node) < 1:
