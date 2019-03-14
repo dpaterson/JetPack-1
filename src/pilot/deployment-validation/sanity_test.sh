@@ -796,7 +796,7 @@ then
       num_volumes=$(cinder list | grep $BASE_VOLUME_NAME | wc -l)
     done
 
-    radosgw_cleanup
+    # radosgw_cleanup
 
     set_admin_scope
 
@@ -938,7 +938,7 @@ else
 
   vlan_aware_test
 
-  radosgw_test
+  # radosgw_test
 
   end
 
