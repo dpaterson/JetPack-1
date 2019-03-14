@@ -18,6 +18,7 @@ import argparse
 import logging
 import os
 import sys
+import utils
 from arg_helper import ArgHelper
 from credential_helper import CredentialHelper
 from ironic_helper import IronicHelper
@@ -76,12 +77,13 @@ def get_nodes(ironic_client, ip_or_mac_address=None):
     if ip_or_mac_address is not None:
         nodes = []
         node = IronicHelper.get_ironic_node(ironic_client,
-                                        ip_or_mac_address)
+                                            ip_or_mac_address)
         if node is not None:
             nodes.append(node)
         return nodes
     else:
         return ironic_client.node.list(detail=True)
+
 
 def refresh_nodes(ironic_client, nodes):
     node_uuids = [node.uuid for node in nodes]
@@ -145,7 +147,7 @@ def ib_introspect(node):
                                CredentialHelper.get_drac_ip(node), node.uuid))
 
 
-def introspect_nodes(in_band, ironic_client, nodes, physical_network,
+def introspect_nodes(in_band, ironic_client, nodes, physical_network=None,
                      transition_nodes=True):
     # Check to see if provisioning_mac has been set on all the nodes
     bad_nodes = []
@@ -282,8 +284,9 @@ def introspect_nodes(in_band, ironic_client, nodes, physical_network,
             introspect_nodes(False, ironic_client, bad_nodes,
                              transition_nodes=False)
 
-    for node in nodes:
-        assign_physcial_port(ironic_client, node, physical_network)
+    if utils.Utils.is_enable_routed_networks():
+        for node in nodes:
+            assign_physcial_port(ironic_client, node, physical_network)
 
     if transition_nodes:
         nodes = transition_to_state(ironic_client, nodes,
