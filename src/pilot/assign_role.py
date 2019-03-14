@@ -79,6 +79,7 @@ DCIM_PhysicalDiskView = ('http://schemas.dell.com/wbem/wscim/1/cim-schema/2/'
 
 NORAID = "1"
 RAID0 = "2"
+RAID1 = "4"
 
 RAID_TYPE_TO_DESCRIPTION = {
     NORAID:  "No RAID",
@@ -339,6 +340,16 @@ def define_single_raid_10_logical_disk(drac_client, raid_controller_name):
 
     number_physical_disks = len(physical_disk_names)
 
+    # FIXME: This was workaround for the Franekstamp hardware
+    if number_physical_disks > 3 and number_physical_disks % 2 != 0:
+        LOG.info("Not an even number of disks, removing %s" %
+                 physical_disk_names.pop())
+        LOG.info("And because Mark thinks this is a controller, removing %s" %
+                 physical_disk_names.pop())
+        LOG.info("Forcing RAID 1 with only 2 disks, removing %s" %
+                 physical_disk_names.pop())
+        number_physical_disks = len(physical_disk_names)
+
     if number_physical_disks >= 4:
         LOG.info(
             "Defining RAID 10 on the following physical disks, and marking it "
@@ -350,7 +361,20 @@ def define_single_raid_10_logical_disk(drac_client, raid_controller_name):
             raid_controller_name,
             physical_disk_names,
             is_root_volume=True)
-    elif number_physical_disks == 3 or number_physical_disks == 2:
+    # FIXME: This was workaround for the Franekstamp hardware
+    elif number_physical_disks == 3:
+        LOG.warning(
+            "Did not find enough disks for RAID 10; defining RAID 5 on the "
+            "following physical disks, and marking it the root volume:"
+            "\n  {}".format(
+                "\n  ".join(physical_disk_names)))
+        logical_disk = define_logical_disk(
+            'MAX',
+            '5',
+            raid_controller_name,
+            physical_disk_names,
+            is_root_volume=True)
+    elif number_physical_disks == 2:
         LOG.warning(
             "Did not find enough disks for RAID 10; defining RAID 1 on the "
             "following physical disks, and marking it the root volume:"
@@ -1274,7 +1298,9 @@ def select_os_volume(os_volume_size_gb, ironic_client, drac_client, node_uuid):
                         physical_disk_doc, DCIM_PhysicalDiskView)
                     physical_disk_size_gb = int(physical_disk_size) / units.Gi
 
-                    if physical_disk_size_gb == raid_size_gb:
+                    # FIXME: This was workaround for the Franekstamp hardware
+                    if (raid_type != RAID1
+                            and physical_disk_size_gb == raid_size_gb):
                         # If we did find a disk that's the same size as the
                         # located RAID (in GB), then we can't tell Ironic what
                         # volume to install the OS on.
