@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import ConfigParser
 import json
 import os
 from constants import Constants
@@ -40,3 +40,17 @@ class Utils:
             raise
 
         return model_properties
+
+    @staticmethod
+    def is_enable_routed_networks():
+        conf = ConfigParser.SafeConfigParser()
+        conf.read(Constants.UNDERCLOUD_CONF)
+        enable_routed_networks = False
+        try:
+            enable_routed_networks = conf.getboolean('DEFAULT',
+                                                     'enable_routed_networks')
+        except ValueError:
+            pass
+
+        print("is_enable_routed_networks: %s" % enable_routed_networks)
+        return enable_routed_networks
