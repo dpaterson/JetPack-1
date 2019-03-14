@@ -30,6 +30,9 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description="Prepares the overcloud nodes.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-u', '--uuid',
+                        help='Only preapre single node by UUID',
+                        required=False)
 
     LoggingHelper.add_argument(parser)
 
@@ -42,6 +45,10 @@ def main():
     LoggingHelper.configure_logging(args.logging_level)
 
     cmd = "source ~/stackrc;openstack baremetal node list -f value -c UUID"
+
+    if args.uuid is not None:
+        cmd += "| grep " + args.uuid
+
     nodes = subprocess.check_output(cmd,
                                     stderr=subprocess.STDOUT,
                                     shell=True)
