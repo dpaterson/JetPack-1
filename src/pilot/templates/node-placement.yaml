@@ -19,5 +19,8 @@ parameter_defaults:
   DellComputeSchedulerHints:
     'capabilities:node': 'compute-%index%'
 
+  DellEdgeComputeSchedulerHints:
+    'capabilities:node': 'edge-compute-%index%'
+
   CephStorageSchedulerHints:
     'capabilities:node': 'ceph-storage-%index%'

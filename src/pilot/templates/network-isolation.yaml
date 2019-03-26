@@ -58,6 +58,13 @@ resource_registry:
   OS::TripleO::DellCompute::Ports::TenantPort: ../network/ports/tenant.yaml
   #OS::TripleO::DelvCompute::Ports::ManagementPort: ../network/ports/management.yaml
 
+  # Port assignments for the Dell Edge subnet compute role
+  OS::TripleO::DellEdgeCompute::Ports::ExternalPort: ../network/ports/noop.yaml
+  OS::TripleO::DellEdgeCompute::Ports::InternalApiPort: ../network/ports/internal_api.yaml
+  OS::TripleO::DellEdgeCompute::Ports::StoragePort: ../network/ports/storage.yaml
+  OS::TripleO::DellEdgeCompute::Ports::StorageMgmtPort: ../network/ports/noop.yaml
+  OS::TripleO::DellEdgeCompute::Ports::TenantPort: ../network/ports/tenant.yaml
+
   # Port assignments for the ceph storage role
   OS::TripleO::CephStorage::Ports::ExternalPort: ../network/ports/noop.yaml
   OS::TripleO::CephStorage::Ports::InternalApiPort: ../network/ports/noop.yaml

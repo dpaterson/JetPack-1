@@ -18,6 +18,11 @@ resource_registry:
 
 
 parameter_defaults:
+  # Important, this is what tells neutron
+  # what subnet and allocation pool to use
+  # during pxe boot during provisioning phase
+  DellEdgeComputeControlPlaneSubnet: edge-subnet
+
   # CHANGEME: Change the following to the desired MTU for Neutron Networks
   NeutronGlobalPhysnetMtu: 1500
   # CHANGEME: Change the following to the CIDR for the Management network
@@ -36,11 +41,11 @@ parameter_defaults:
   StorageMgmtNetCidr: 192.168.180.0/24
 
   # CHANGEME: Change the following to the CIDR for the External network
-  ExternalNetCidr: 192.168.190.0/24
+  ExternalNetCidr: 100.67.196.1/25
 
   # CHANGEME: Change the following to the DHCP ranges for the iDRACs to use on
   # the Management network
-  ManagementAllocationPools: [{'start': '192.168.110.10', 'end': '192.168.110.149'}]
+  ManagementAllocationPools: [{'start': '192.168.110.100', 'end': '192.168.110.101'}]
 
   # The allocation pools below are used to dynamically assign DHCP IP addresses
   # to the various networks on the overcloud nodes as they are provisioned.  If
@@ -48,15 +53,15 @@ parameter_defaults:
 
   # CHANGEME: Change the following to the DHCP range to use on the
   # Private API network
-  InternalApiAllocationPools: [{'start': '192.168.140.121', 'end': '192.168.140.250'}]
+  InternalApiAllocationPools: [{'start': '192.168.140.100', 'end': '192.168.140.200'}]
 
   # CHANGEME: Change the following to the DHCP range to use on the
   # Tenant network
-  TenantAllocationPools: [{'start': '192.168.130.121', 'end': '192.168.130.250'}]
+  TenantAllocationPools: [{'start': '192.168.130.150', 'end': '192.168.130.200'}]
 
   # CHANGEME: Change the following to the DHCP range to use on the
   # Storage network
-  StorageAllocationPools: [{'start': '192.168.170.121', 'end': '192.168.170.250'}]
+  StorageAllocationPools: [{'start': '192.168.170.125', 'end': '192.168.170.250'}]
 
   # CHANGEME: Change the following to the DHCP range to use on the
   # Storage Clustering network
@@ -64,29 +69,30 @@ parameter_defaults:
 
   # CHANGEME: Change the following to the DHCP range to use on the
   # External network
-  ExternalAllocationPools: [{'start': '192.168.190.121', 'end': '192.168.190.250'}]
+  ExternalAllocationPools: [{'start': '100.67.196.20', 'end': '100.67.196.40'}]
 
   # CHANGEME: Set to the router gateway on the external network
-  ExternalInterfaceDefaultRoute: 192.168.190.1
+  ExternalInterfaceDefaultRoute: 100.67.196.1
 
   # CHANGEME: Set to the router gateway on the management network
   ManagementNetworkGateway: 192.168.110.1
 
   # CHANGEME: Set to the IP of the gateway on the provisioning network which
   # will allow access to the management network
+  # TODO: dpaterson -  is this wrong should it be .9 and not .1?
   ProvisioningNetworkGateway: 192.168.120.1
 
   # CHANGEME: Set to the router gateway on the provisioning network (or Undercloud IP)
-  ControlPlaneDefaultRoute: 192.168.120.13
+  ControlPlaneDefaultRoute: 192.168.120.9
 
   # CHANGEME: Set to the CIDR of the control plane network
   ControlPlaneSubnetCidr: "24"
 
   # CHANGEME: Set to the IP address of the Undercloud
-  EC2MetadataIp: 192.168.120.13
+  EC2MetadataIp: 192.168.120.9
 
   # CHANGEME: Set to the DNS servers to use for the overcloud nodes (maximum 2)
-  DnsServers: ["8.8.8.8", "8.8.4.4"]
+  DnsServers: ["8.8.8.8"]
 
   # CHANGEME: Change the following to the VLAN ID to use on the
   # Private API network
@@ -106,7 +112,7 @@ parameter_defaults:
 
   # CHANGEME: Change the following to the VLAN ID to use on the
   # External network
-  ExternalNetworkVlanID: 190
+  ExternalNetworkVlanID: 1961
   # CHANGEME: Change the following to the MTU value to use on the
   # External network
   ExternalNetworkMTU: 1500
@@ -130,11 +136,11 @@ parameter_defaults:
   ManagementNetworkMTU: 1500
   # CHANGEME: Change the following to the MTU value to use on the
   # Default Bonds MTU
-  DefaultBondMTU: 9000
+  DefaultBondMTU: 1500
   
   # CHANGEME: Change the following to mtu size used for the floating network
   ExtraConfig:
-    neutron::plugins::ml2::physical_network_mtus: physext:1500
+    neutron::plugins::ml2::physical_network_mtus: ['physext:1500']
   # CHANGEME: Set to empty string for External VLAN, br-ex if on native VLAN of br-ex
   NeutronExternalNetworkBridge: "''"
   ServiceNetMap:

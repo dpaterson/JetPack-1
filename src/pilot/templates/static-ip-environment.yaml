@@ -32,6 +32,12 @@ resource_registry:
   OS::TripleO::DellCompute::Ports::StorageMgmtPort: ./overcloud/network/ports/noop.yaml
   OS::TripleO::DellCompute::Ports::TenantPort: ./overcloud/network/ports/tenant_from_pool.yaml
 
+  OS::TripleO::DellEdgeCompute::Ports::ExternalPort: ./overcloud/network/ports/noop.yaml
+  OS::TripleO::DellEdgeCompute::Ports::InternalApiPort: ./overcloud/network/ports/internal_api_from_pool.yaml
+  OS::TripleO::DellEdgeCompute::Ports::StoragePort: ./overcloud/network/ports/storage_from_pool.yaml
+  OS::TripleO::DellEdgeCompute::Ports::StorageMgmtPort: ./overcloud/network/ports/noop.yaml
+  OS::TripleO::DellEdgeCompute::Ports::TenantPort: ./overcloud/network/ports/tenant_from_pool.yaml
+
   OS::TripleO::CephStorage::Ports::ExternalPort: ./overcloud/network/ports/noop.yaml
   OS::TripleO::CephStorage::Ports::InternalApiPort: ./overcloud/network/ports/noop.yaml
   OS::TripleO::CephStorage::Ports::StoragePort: ./overcloud/network/ports/storage_from_pool.yaml
@@ -49,28 +55,28 @@ parameter_defaults:
   ControllerIPs:
     # CHANGEME: Change the following IPs to the static IPs for the controllers
     # on the Tenant network
-    tenant:
-    - 192.168.130.21
-    - 192.168.130.22
-    - 192.168.130.23
+    tenant: 
+    - 192.168.130.18
+    - 192.168.130.17
+    - 192.168.130.16
     # CHANGEME: Change the following to the static IPs for the controllers
     # on the Private API network
-    internal_api:
-    - 192.168.140.21
-    - 192.168.140.22
-    - 192.168.140.23
+    internal_api: 
+    - 192.168.140.18
+    - 192.168.140.17
+    - 192.168.140.16
     # CHANGEME: Change the following to the static IPs for the controllers
     # on the Storage network
-    storage:
-    - 192.168.170.21
-    - 192.168.170.22
-    - 192.168.170.23
+    storage: 
+    - 192.168.170.18
+    - 192.168.170.17
+    - 192.168.170.16
     # CHANGEME: Change the following to the static IPs for the controllers
     # on the Public API network
-    external:
-    - 192.168.190.21
-    - 192.168.190.22
-    - 192.168.190.23
+    external: 
+    - 100.67.196.18
+    - 100.67.196.17
+    - 100.67.196.16
 
   # The NovaComputeIPs section below is not used.  Set the Compute nodes
   # static IPs in the DellComputeIPs section.
@@ -82,33 +88,54 @@ parameter_defaults:
   DellComputeIPs:
     # CHANGEME: Change the following IPs to the static IPs for the computes on
     # the Tenant network
+    tenant: 
+    - 192.168.130.13
+    - 192.168.130.12
+    - 192.168.130.11
+    # CHANGEME: Change the following IPs to the static IPs for the computes on
+    # the Private API network
+    internal_api: 
+    - 192.168.140.13
+    - 192.168.140.12
+    - 192.168.140.11
+    # CHANGEME: Change the following IPs to the static IPs for the computes on
+    # the Storage network
+    storage: 
+    - 192.168.170.13
+    - 192.168.170.12
+    - 192.168.170.11
+
+  DellEdgeComputeIPs:
+    # CHANGEME: Change the following IPs to the static IPs for the computes on
+    # the Tenant network
     tenant:
-    - 192.168.130.31
-    - 192.168.130.32
-    - 192.168.130.33
+    - 192.168.130.25
+    - 192.168.130.26
+    - 192.168.130.27
     # CHANGEME: Change the following IPs to the static IPs for the computes on
     # the Private API network
     internal_api:
-    - 192.168.140.31
-    - 192.168.140.32
-    - 192.168.140.33
+    - 192.168.140.25
+    - 192.168.140.26
+    - 192.168.140.27
     # CHANGEME: Change the following IPs to the static IPs for the computes on
     # the Storage network
     storage:
-    - 192.168.170.31
-    - 192.168.170.32
-    - 192.168.170.33
+    - 192.168.170.25
+    - 192.168.170.26
+    - 192.168.170.27
+
 
   CephStorageIPs:
     # CHANGEME: Change the following to the static IPs for the ceph storage
     # nodes on the Storage network
-    storage:
-    - 192.168.170.76
-    - 192.168.170.77
-    - 192.168.170.78
+    storage: 
+    - 192.168.170.20
+    - 192.168.170.21
+    - 192.168.170.22
     # CHANGEME: Change the following to the static IPs for the ceph storage
     # nodes on the Storage Clustering network
-    storage_mgmt:
-    - 192.168.180.76
-    - 192.168.180.77
-    - 192.168.180.78
+    storage_mgmt: 
+    - 192.168.180.20
+    - 192.168.180.21
+    - 192.168.180.22
