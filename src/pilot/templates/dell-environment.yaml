@@ -24,7 +24,7 @@ parameter_defaults:
   ## >neutron-disable-tunneling no mapping.
 
   # The neutron ML2 and OpenvSwith VLAN Mapping ranges to support.
-  NeutronNetworkVLANRanges: physint:201:220,physext
+  NeutronNetworkVLANRanges: physint:201:250,physext
 
   # The logical to physical bridge mappings to use. 
   # Defaults to mapping the external bridge on hosts (br-ex) to a physical name (datacentre). 
@@ -106,6 +106,8 @@ parameter_defaults:
     journal_size: 10000
     journal_collocation: false
     raw_multi_journal: true
+    rgw_swift_enforce_content_length: true
+    rgw_swift_versioning_enabled: true
   CephAnsibleDisksConfig:
     osd_scenario: collocated
     devices:
