@@ -410,7 +410,8 @@ def get_raid_controller_physical_disk_ids(drac_client, raid_controller_fqdd):
     physical_disks = drac_client.list_physical_disks()
 
     return sorted(
-        (d.id for d in physical_disks if d.controller == raid_controller_fqdd),
+        (d.id for d in physical_disks if d.controller == raid_controller_fqdd
+         and d.media_type == "hdd"),
         key=physical_disk_id_to_key)
 
 
