@@ -411,8 +411,8 @@ def get_raid_controller_physical_disk_ids(drac_client, raid_controller_fqdd):
 
     return sorted(
         (d.id for d in physical_disks if d.controller == raid_controller_fqdd
-         and d.media_type == "hdd"),
-        key=physical_disk_id_to_key)
+         and d.media_type == "hdd" and d.hot_spare_status == 0),
+        key=physical_disk_id_to_key) 
 
 
 def define_storage_logical_disks(drac_client, raid_controller_name):
@@ -1065,6 +1065,14 @@ def get_drives(drac_client):
                                           status=physical_disk.status))
             continue
 
+        # Eliminate physical disks that have a non-zero hot spare status
+        if physical_disk.hot_spare_status != 0:
+            LOG.warning("Not using disk {id}, because it has a hot spare "
+                        "status of: {status}"
+                        .format(id=physical_disk.id,
+                                status=physical_disk.hot_spare_status))
+            continue
+
         # Go ahead and use any physical drive that's not in an error state, but
         # issue a warning if it's not in the ok or unknown state
         if physical_disk.status != 'ok' and physical_disk.status != 'unknown':
@@ -1150,6 +1158,10 @@ def get_fqdd(doc, namespace):
 
 def get_size_in_bytes(doc, namespace):
     return utils.find_xml(doc, 'SizeInBytes', namespace).text
+
+def get_block_size_in_bytes(doc, namespace):
+    return utils.find_xml(doc, 'BlockSizeInBytes', namespace).text
+
 
 
 def select_os_volume(os_volume_size_gb, ironic_client, drac_client, node_uuid):
