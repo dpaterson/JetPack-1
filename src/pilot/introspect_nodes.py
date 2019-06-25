@@ -147,7 +147,8 @@ def ib_introspect(node):
                                CredentialHelper.get_drac_ip(node), node.uuid))
 
 
-def introspect_nodes(in_band, ironic_client, nodes, physical_network=None,
+def introspect_nodes(in_band, ironic_client, nodes,
+                     physical_network=None,
                      transition_nodes=True):
     # Check to see if provisioning_mac has been set on all the nodes
     bad_nodes = []
@@ -229,7 +230,7 @@ def introspect_nodes(in_band, ironic_client, nodes, physical_network=None,
         # Wait for the nodes to transition out of "inspecting"
         # Allow 10 minutes to complete OOB introspection
         logger.info("Waiting for introspection to complete...")
-        introspection_timeout = 600
+        introspection_timeout = 3000
         while introspection_timeout > 0:
             inspecting = refresh_nodes(ironic_client, inspecting)
             for node in inspecting:
@@ -292,6 +293,7 @@ def introspect_nodes(in_band, ironic_client, nodes, physical_network=None,
         nodes = transition_to_state(ironic_client, nodes,
                                     'provide', 'available')
 
+    # don't think this is required anymore
     if use_oob_introspection:
         # FIXME: Remove this hack when OOB introspection is fixed
         for node in nodes:
