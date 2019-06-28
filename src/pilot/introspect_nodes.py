@@ -293,13 +293,6 @@ def introspect_nodes(in_band, ironic_client, nodes,
         nodes = transition_to_state(ironic_client, nodes,
                                     'provide', 'available')
 
-    # don't think this is required anymore
-    if use_oob_introspection:
-        # FIXME: Remove this hack when OOB introspection is fixed
-        for node in nodes:
-            delete_non_pxe_ports(ironic_client, node)
-
-
 def assign_physcial_port(ironic_client, node, physical_network):
     ip = CredentialHelper.get_drac_ip(node)
 
@@ -312,21 +305,6 @@ def assign_physcial_port(ironic_client, node, physical_network):
                 physical_network, port.uuid)
             logger.info("Running: {}".format(cmd))
             os.system(cmd)
-
-
-def delete_non_pxe_ports(ironic_client, node):
-    ip = CredentialHelper.get_drac_ip(node)
-
-    logger.info("Deleting all non-PXE ports from node {} ({})...".format(
-        ip, node.uuid))
-
-    for port in ironic_client.node.list_ports(node.uuid):
-        if port.address.lower() != \
-                node.properties["provisioning_mac"].lower():
-            logger.info("Deleting port {} ({}) {}".format(
-                ip, node.uuid, port.address.lower()))
-            ironic_client.port.delete(port.uuid)
-
 
 def main():
     args = parse_arguments()
@@ -342,3 +320,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

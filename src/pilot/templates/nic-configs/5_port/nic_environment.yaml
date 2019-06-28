@@ -15,7 +15,7 @@
 resource_registry:
   OS::TripleO::Controller::Net::SoftwareConfig: ./controller.yaml
   OS::TripleO::DellCompute::Net::SoftwareConfig: ./dellcompute.yaml
-  OS::TripleO::DellEdgeCompute::Net::SoftwareConfig: ./dellcompute.yaml
+  OS::TripleO::DellEdgeCompute::Net::SoftwareConfig: ./delledgecompute.yaml
   OS::TripleO::CephStorage::Net::SoftwareConfig: ./storage.yaml
 
 
