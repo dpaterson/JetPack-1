@@ -58,7 +58,7 @@ parameter_defaults:
   DellComputeCount: 3
 
   # Number of Dell Edge Compute nodes
-  DellEdgeComputeCount: 1
+  DellEdgeComputeCount: 0
 
   # Apply tuned-adm profile on Compute Nodes
   ComputeTunedAdmProfile: virtual-host
@@ -94,6 +94,8 @@ parameter_defaults:
   #  devices:
   #  - /dev/sda2
 
+  ## Whether to enable rbd (Ceph) backend for Cinder.
+  CinderEnableRbdBackend: true
 
   # Configure Ceph Placement Group (PG) values for the indicated pools
   CephPools: [{"pg_num": 128, "name": "volumes", "pgp_num": 128}, {"pg_num": 128, "name": "vms", "pgp_num": 128}, {"pg_num": 128, "name": "images", "pgp_num": 128}, {"pg_num": 32, "name": ".rgw.buckets", "pgp_num": 32}]
