@@ -1,0 +1,59 @@
+diff --git a/dracclient/resources/raid.py b/dracclient/resources/raid.py
+index b9ca14d..e10d911 100644
+--- a/dracclient/resources/raid.py
++++ b/dracclient/resources/raid.py
+@@ -82,7 +82,7 @@ PhysicalDiskTuple = collections.namedtuple(
+     ['id', 'description', 'controller', 'manufacturer', 'model', 'media_type',
+      'interface_type', 'size_mb', 'free_size_mb', 'serial_number',
+      'firmware_version', 'status', 'raid_status', 'sas_address',
+-     'device_protocol'])
++     'device_protocol', 'hot_spare_status', 'block_size_in_bytes'])
+ 
+ 
+ class PhysicalDisk(PhysicalDiskTuple):
+@@ -318,6 +318,13 @@ class RAIDManagement(object):
+         drac_bus_protocol = self._get_physical_disk_attr(drac_disk,
+                                                          'BusProtocol', uri)
+ 
++        hot_spare_status = self._get_physical_disk_attr(drac_disk,
++                                                        'HotSpareStatus', uri)
++
++        block_size_in_bytes = self._get_physical_disk_attr(drac_disk,
++                                                           'BlockSizeInBytes',
++                                                           uri)
++
+         return PhysicalDisk(
+             id=fqdd,
+             description=self._get_physical_disk_attr(drac_disk,
+@@ -342,7 +349,9 @@ class RAIDManagement(object):
+             device_protocol=self._get_physical_disk_attr(drac_disk,
+                                                          'DeviceProtocol',
+                                                          uri,
+-                                                         allow_missing=True))
++                                                         allow_missing=True),
++            hot_spare_status=int(hot_spare_status),
++            block_size_in_bytes=int(block_size_in_bytes))
+ 
+     def _get_physical_disk_attr(self, drac_disk, attr_name, uri,
+                                 allow_missing=False):
+@@ -648,7 +657,8 @@ class RAIDManagement(object):
+ 
+         p_disk_id_to_status = {}
+         for physical_disk in physical_disks:
+-            p_disk_id_to_status[physical_disk.id] = physical_disk.raid_status
++            if physical_disk.hot_spare_status==0:
++                p_disk_id_to_status[physical_disk.id] = physical_disk.raid_status
+         failed_disks = []
+         bad_disks = []
+ 
+@@ -753,8 +763,8 @@ class RAIDManagement(object):
+                                            all_controllers):
+                     physical_disk_ids = controllers_to_physical_disk_ids[
+                         physical_d.controller]
+-
+-                    physical_disk_ids.append(physical_d.id)
++                    if physical_d.hot_spare_status==0:
++                        physical_disk_ids.append(physical_d.id)
+ 
+         '''Modify controllers_to_physical_disk_ids dict by inspecting desired
+         status vs current status of each controller's disks.
