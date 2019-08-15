@@ -24,7 +24,7 @@ parameter_defaults:
   ## >neutron-disable-tunneling no mapping.
 
   # The neutron ML2 and OpenvSwith VLAN Mapping ranges to support.
-  NeutronNetworkVLANRanges: physint:201:250,physext
+  NeutronNetworkVLANRanges: physint:201:220,physext
 
   # The logical to physical bridge mappings to use. 
   # Defaults to mapping the external bridge on hosts (br-ex) to a physical name (datacentre). 
@@ -45,20 +45,21 @@ parameter_defaults:
   # List of Default Filters to pass to the nova Scheduler
   # Default filters are used if profile is set to XSP
   # This line is uncommented when using with CSP profile
-  # NovaSchedulerDefaultFilters: ['RetryFilter','AvailabilityZoneFilter','RamFilter','DiskFilter', 'ComputeFilter','ComputeCapabilitiesFilter','ImagePropertiesFilter','ServerGroupAntiAffinityFilter','ServerGroupAffinityFilter', 'CoreFilter', 'NUMATopologyFilter', 'AggregateInstanceExtraSpecsFilter']
+  NovaSchedulerDefaultFilters: ['RetryFilter','AvailabilityZoneFilter','RamFilter','DiskFilter', 'ComputeFilter','ComputeCapabilitiesFilter','ImagePropertiesFilter','ServerGroupAntiAffinityFilter','ServerGroupAffinityFilter', 'CoreFilter', 'NUMATopologyFilter', 'AggregateInstanceExtraSpecsFilter']
 
   # List of CPUs reserver for Host OS operation
   # Disabled by default for XSP Profile
   # This line is uncommented and updated when using CSP Profile
   # NovaVcpuPinSet: "8-23,32-47"
-  # DellComputeParameters:
+  DellComputeParameters:
     # KernelArgs: "default_hugepagesz=1GB hugepagesz=1G hugepages=176 iommu=pt intel_iommu=on"
 
   # Number of Dell Compute nodes 
   DellComputeCount: 3
+  
+  DellEdgeComputeCount: 1
 
-  # Number of Dell Edge Compute nodes
-  DellEdgeComputeCount: 0
+  DellEdgeGpuComputeCount: 0 
 
   # Apply tuned-adm profile on Compute Nodes
   ComputeTunedAdmProfile: virtual-host
@@ -82,7 +83,7 @@ parameter_defaults:
 
   # To customize the domain name of the overcloud nodes, change "localdomain"
   # in the following line to the desired domain name.
-  CloudDomain: localdomain
+  CloudDomain: netedge20190604.net
 
   # Set to true to enable Nova usage of Ceph for ephemeral storage.
   # If set to false, Nova uses the storage local to the compute.
@@ -93,12 +94,12 @@ parameter_defaults:
 
   #  devices:
   #  - /dev/sda2
-
+  
   ## Whether to enable rbd (Ceph) backend for Cinder.
   CinderEnableRbdBackend: true
 
   # Configure Ceph Placement Group (PG) values for the indicated pools
-  CephPools: [{"pg_num": 128, "name": "volumes", "pgp_num": 128}, {"pg_num": 128, "name": "vms", "pgp_num": 128}, {"pg_num": 128, "name": "images", "pgp_num": 128}, {"pg_num": 32, "name": ".rgw.buckets", "pgp_num": 32}]
+  CephPools: [{"pg_num": 128, "name": "volumes", "pgp_num": 128}, {"pg_num": 128, "name": "vms", "pgp_num": 128}, {"pg_num": 128, "name": "images", "pgp_num": 128}, {"pg_num": 32, "name": ".rgw.buckets", "pgp_num": 32}, {"pg_num": 32, "name": "backups", "pgp_num": 32}, {"pg_num": 32, "name": "metrics", "pgp_num": 32}, {"pg_num": 32, "name": ".rgw.root", "pgp_num": 32}, {"pg_num": 32, "name": "default.rgw.control", "pgp_num": 32}, {"pg_num": 32, "name": "default.rgw.meta", "pgp_num": 32}, {"pg_num": 32, "name": "default.rgw.log", "pgp_num": 32}, {"pg_num": 32, "name": "default.rgw.buckets.index", "pgp_num": 32}, {"pg_num": 32, "name": "default.rgw.buckets.data", "pgp_num": 32}]
 
   CephAnsiblePlaybookVerbosity: 1
   

@@ -22,6 +22,7 @@ parameter_defaults:
   # what subnet and allocation pool to use
   # during pxe boot during provisioning phase
   DellEdgeComputeControlPlaneSubnet: edge-subnet
+  DellEdgeGpuComputeControlPlaneSubnet: edge-subnet
 
   # CHANGEME: Change the following to the desired MTU for Neutron Networks
   NeutronGlobalPhysnetMtu: 1500

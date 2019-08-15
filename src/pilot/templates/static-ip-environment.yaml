@@ -38,6 +38,12 @@ resource_registry:
   OS::TripleO::DellEdgeCompute::Ports::StorageMgmtPort: ./overcloud/network/ports/noop.yaml
   OS::TripleO::DellEdgeCompute::Ports::TenantPort: ./overcloud/network/ports/tenant_from_pool.yaml
 
+  OS::TripleO::DellEdgeGpuCompute::Ports::ExternalPort: ./overcloud/network/ports/noop.yaml
+  OS::TripleO::DellEdgeGpuCompute::Ports::InternalApiPort: ./overcloud/network/ports/internal_api_from_pool.yaml
+  OS::TripleO::DellEdgeGpuCompute::Ports::StoragePort: ./overcloud/network/ports/storage_from_pool.yaml
+  OS::TripleO::DellEdgeGpuCompute::Ports::StorageMgmtPort: ./overcloud/network/ports/noop.yaml
+  OS::TripleO::DellEdgeGpuCompute::Ports::TenantPort: ./overcloud/network/ports/tenant_from_pool.yaml
+
   OS::TripleO::CephStorage::Ports::ExternalPort: ./overcloud/network/ports/noop.yaml
   OS::TripleO::CephStorage::Ports::InternalApiPort: ./overcloud/network/ports/noop.yaml
   OS::TripleO::CephStorage::Ports::StoragePort: ./overcloud/network/ports/storage_from_pool.yaml
@@ -124,6 +130,26 @@ parameter_defaults:
     - 192.168.170.25
     - 192.168.170.26
     - 192.168.170.27
+
+  DellEdgeGpuComputeIPs:
+    # CHANGEME: Change the following IPs to the static IPs for the computes on
+    # the Tenant network
+    tenant:
+    - 192.168.130.28
+    - 192.168.130.29
+    - 192.168.130.30
+    # CHANGEME: Change the following IPs to the static IPs for the computes on
+    # the Private API network
+    internal_api:
+    - 192.168.140.28
+    - 192.168.140.29
+    - 192.168.140.30
+    # CHANGEME: Change the following IPs to the static IPs for the computes on
+    # the Storage network
+    storage:
+    - 192.168.170.28
+    - 192.168.170.29
+    - 192.168.170.30
 
 
   CephStorageIPs:

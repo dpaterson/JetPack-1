@@ -3,6 +3,11 @@ description: >
   Bond and VLAN configuration for compute nodes. comment14_0: ' The values of the following parameters are overridden by the
   entries in' comment15_0: ' network-environment.yaml'
 parameters:
+  # CHANGEME: Change the interface names in the following lines for the
+  # compute nodes provisioning interface and to include in the compute
+  # nodes bonds
+  # The bonding mode to use for compute nodes
+  ComputeBondInterfaceOptions: mode=802.3ad miimon=100 xmit_hash_policy=layer3+4 lacp_rate=1
   ControlPlaneIp:
     default: ''
     description: IP address/subnet on the ctlplane network

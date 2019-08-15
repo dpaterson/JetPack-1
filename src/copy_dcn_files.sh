@@ -12,10 +12,11 @@ cp ~/JetPack-1/src/pilot/templates/nic-configs/5_port/delledgecompute.yaml ~/pil
 cp ~/JetPack-1/src/pilot/templates/nic-configs/5_port/nic_environment.yaml ~/pilot/templates/nic-configs/5_port/
 cp ~/JetPack-1/src/pilot/templates/nic-configs/5_port/nic_environment.yaml ~/pilot/templates/nic-configs/5_port/
 echo "Copying python mods for DCN"
-cp ~/JetPack-1/src/pilot/assign_role.py ~/pilot/
-cp ~/JetPack-1/src/pilot/constants.py ~/pilot/
-cp ~/JetPack-1/src/pilot/introspect_nodes.py ~/pilot/
+# Already done pre-deployment on sah
+# cp ~/JetPack-1/src/pilot/assign_role.py ~/pilot/
+# cp ~/JetPack-1/src/pilot/constants.py ~/pilot/
+# cp ~/JetPack-1/src/pilot/introspect_nodes.py ~/pilot/
+# cp ~/JetPack-1/src/pilot/utils.py ~/pilot/
 cp ~/JetPack-1/src/pilot/prep_overcloud_nodes.py ~/pilot/
-cp ~/JetPack-1/src/pilot/utils.py ~/pilot/
 cp ~/JetPack-1/src/pilot/discover_nodes/discover_nodes.py ~/pilot/discover_nodes/
 cp ~/JetPack-1/src/pilot/undercloud.conf ~/pilot/
