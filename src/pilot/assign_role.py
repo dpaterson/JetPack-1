@@ -33,7 +33,6 @@ import time
 
 from dracclient import utils
 from dracclient.constants import POWER_OFF
-from dracclient.constants import RebootRequired
 from dracclient.exceptions import DRACOperationFailed, \
     DRACUnexpectedReturnValue, WSManInvalidResponse, WSManRequestFailure
 from oslo_utils import units
@@ -1430,31 +1429,15 @@ def change_physical_disk_state_wait(
         mode, controllers_to_physical_disk_ids)
 
     job_ids = []
-    is_reboot_required = False
-    # Remove the line below to turn back on realtime conversion
-    is_reboot_required = True
-    conversion_results = change_state_result['conversion_results']
-    for controller_id in conversion_results.keys():
-        controller_result = conversion_results[controller_id]
-
-        if controller_result['is_reboot_required'] == RebootRequired.true:
-            is_reboot_required = True
-
-        if controller_result['is_commit_required']:
-            realtime = controller_result['is_reboot_required'] == \
-                RebootRequired.optional
-            # Remove the line below to turn back on realtime conversion
-            realtime = False
+    if change_state_result['commit_required_ids']:
+        for controller_id in change_state_result['commit_required_ids']:
             job_id = drac_client.commit_pending_raid_changes(
-                controller_id,
-                reboot=False,
-                start_time=None,
-                realtime=realtime)
+                controller_id, reboot=False, start_time=None)
             job_ids.append(job_id)
 
     result = True
     if job_ids:
-        if is_reboot_required:
+        if change_state_result['is_reboot_required']:
             LOG.debug("Rebooting the node to apply configuration")
             job_id = drac_client.create_reboot_job()
             job_ids.append(job_id)
