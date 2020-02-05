@@ -33,6 +33,7 @@ import time
 
 from dracclient import utils
 from dracclient.constants import POWER_OFF
+from dracclient.constants import RebootRequired
 from dracclient.exceptions import DRACOperationFailed, \
     DRACUnexpectedReturnValue, WSManInvalidResponse, WSManRequestFailure
 from oslo_utils import units
@@ -280,12 +281,7 @@ def get_raid_controller_id(drac_client):
 
     raid_controller_ids = [
         c.id for c in disk_ctrls if drac_client.is_raid_controller(c.id)]
-    boss_controller_ids = [
-        c.id for c in disk_ctrls if drac_client.is_boss_controller(c.id)
-    ]
 
-    if boss_controller_ids:
-        raid_controller_ids.append(boss_controller_ids[0])
     number_raid_controllers = len(raid_controller_ids)
 
     if number_raid_controllers == 1:
@@ -940,17 +936,16 @@ def generate_osd_config(ip_mac_service_tag, drac_client):
     new_osd_config = None
     if len(ssds) > 0 and len(spinners) == 0:
         # If we have an all flash config, then let Ceph colocate the journals
-        new_osd_config = generate_osd_config_without_journals(controllers,
-                                                              ssds)
+        new_osd_config, mklvm = generate_osd_config_without_journals(controllers,
+                                                              ssds, system_id)
     elif len(ssds) > 0 and len(spinners) > 0:
         # If we have a mix of flash and spinners, then use the ssds as journals
-        new_osd_config = generate_osd_config_with_journals(controllers,
-                                                           spinners,
-                                                           ssds)
+        new_osd_config, mklvm = generate_osd_config_with_journals(controllers,
+                                                           spinners, ssds, system_id)
     else:
         # We have all spinners, so let Ceph colocate the journals
-        new_osd_config = generate_osd_config_without_journals(controllers,
-                                                              spinners)
+        new_osd_config, mklvm  = generate_osd_config_without_journals(controllers,
+                                                              spinners, system_id)
 
     # load the osd environment file
     osd_config_file = os.path.join(Constants.TEMPLATES, "ceph-osd-config.yaml")
@@ -1043,6 +1038,34 @@ def generate_osd_config(ip_mac_service_tag, drac_client):
         fcntl.flock(stream, fcntl.LOCK_UN)
         stream.close()
 
+    # Generate the mklvm script that ll create LVM's on firstboot
+
+    mklvm_file = os.path.join(Constants.TEMPLATES, "mklvm.sh")
+    streammklvm = open(mklvm_file, 'a+')
+
+    while True:
+        try:
+            fcntl.flock(streammklvm, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except IOError as e:
+            if e.errno != errno.EAGAIN:
+                raise
+            else:
+                time.sleep(1)
+    try:
+        try:
+            current_mklvm = streammklvm.readlines()
+        except:
+            raise
+        streammklvm.seek(0)
+        streammklvm.writelines("%s\n" % line for line in mklvm)
+        streammklvm.truncate()
+
+    finally:
+        fcntl.flock(streammklvm, fcntl.LOCK_UN)
+        streammklvm.close()
+        
+
 
 def get_drives(drac_client):
     spinners = []
@@ -1086,53 +1109,101 @@ def get_drives(drac_client):
 
     return spinners, ssds
 
-
-def generate_osd_config_without_journals(controllers, osd_drives):
+def generate_osd_config_without_journals(controllers, drives, system_id):
+    mklvm = []
+    mklvm.append('if [[ $(dmidecode -s system-uuid) == "' + system_id + '" ]]; then')
     osd_config = {
-        'osd_scenario': 'collocated',
-        'devices': []}
-    for osd_drive in osd_drives:
+        'osd_scenario': 'lvm',
+        'osd_objectstore': 'bluestore',
+        'lvm_volumes': []}
+    drive_count = 0
+    for osd_drive in drives:
         osd_drive_pci_bus_number = get_pci_bus_number(osd_drive, controllers)
         osd_drive_device_name = get_by_path_device_name(
             osd_drive_pci_bus_number, osd_drive)
-        osd_config['devices'].append(osd_drive_device_name)
+        mklvm.append('  device=$(ls -la ' + osd_drive_device_name + " |  awk -F \"../../\" '{ print $2 }')")
+        mklvm.append('  eval "wipefs -a /dev/${device}"')
+        mklvm.append('  sleep 2')
+        mklvm.append('  pvcreate ' + osd_drive_device_name)
+        mklvm.append('  vgcreate ceph_vg' + str(drive_count) + ' ' + osd_drive_device_name)
+        mklvm.append("  size=$(sudo fdisk -l /dev/${device} 2>/dev/null | grep -m1 \"Disk\" | awk '{print $5}')")
+        mklvm.append("  sizeb=`expr $((${size} * 99 / 100))`")
+        mklvm.append("  sizeb=`expr $((${sizeb} / 512 * 512))`")
+        mklvm.append('  lvcreate -n ceph_lv' + str(drive_count) + '_data -L ${sizeb}B ceph_vg' + str(drive_count))
+        mklvm.append('  sleep 2')
+        osd_config['lvm_volumes'].append({"data": "ceph_lv" + str(drive_count) + "_data",
+                                      "data_vg": "ceph_vg" + str(drive_count)})
+        drive_count += 1
+    mklvm.append("fi")
+    return osd_config, mklvm
 
-    return osd_config
-
-
-def generate_osd_config_with_journals(controllers, osd_drives, ssds):
+def generate_osd_config_with_journals(controllers, osd_drives, ssds, system_id):
     if len(osd_drives) % len(ssds) != 0:
         LOG.warning("There is not an even mapping of OSD drives to SSD "
                     "journals.  This will cause inconsistent performance "
                     "characteristics.")
-
+    mklvm = []
+    mklvm.append('if [[ $(dmidecode -s system-uuid) == "' + system_id + '" ]]; then')
     osd_config = {
-        'osd_scenario': 'non-collocated',
-        'devices': [],
-        'dedicated_devices': []}
+        'osd_scenario': 'lvm',
+        'osd_objectstore': 'bluestore',
+        'lvm_volumes': []}
     osd_index = 0
+    vg_index = 0
     remaining_ssds = len(ssds)
-    for ssd in ssds:
+    for ssd in ssds:      
         ssd_pci_bus_number = get_pci_bus_number(ssd, controllers)
         ssd_device_name = get_by_path_device_name(ssd_pci_bus_number, ssd)
-
         num_osds_for_ssd = int(math.ceil((len(osd_drives)-osd_index) /
                                          (remaining_ssds * 1.0)))
+        # x2 volumes for each data osd (DB & WAL)
+        allocation_journals = 50 / num_osds_for_ssd - 1
+        mklvm.append('  device=$(ls -la ' + ssd_device_name + " |  awk -F \"../../\" '{ print $2 }')")
+        mklvm.append('  eval "wipefs -a /dev/${device}"')
+        mklvm.append('  sleep 2')
+        mklvm.append('  pvcreate ' + ssd_device_name)
+        mklvm.append('  vgcreate ceph_vg' + str(vg_index) + ' ' + ssd_device_name)
+        mklvm.append("  size=$(sudo fdisk -l /dev/${device} 2>/dev/null | grep -m1 \"Disk\" | awk '{print $5}')")
+        mklvm.append("  siz=`expr $((${size} * " + str(allocation_journals) + " / 100))`")
+        mklvm.append("  siz=`expr $((${siz} / 512 * 512))`")
+        for i in range(0, num_osds_for_ssd):
+            mklvm.append('  lvcreate -n ceph_lv' + str(vg_index) + "-" + str(i) + '_wal -L ${siz}B ceph_vg' + str(vg_index))
+            mklvm.append('  lvcreate -n ceph_lv' + str(vg_index) + "-" + str(i) + '_db -L ${siz}B ceph_vg' + str(vg_index))
+            mklvm.append('  sleep 2')
 
         osds_for_ssd = osd_drives[osd_index:
                                   osd_index + num_osds_for_ssd]
+        ind = 0
+        journal_index = vg_index
         for osd_drive in osds_for_ssd:
+            vg_index += 1
             osd_drive_pci_bus_number = get_pci_bus_number(osd_drive,
                                                           controllers)
             osd_drive_device_name = get_by_path_device_name(
                 osd_drive_pci_bus_number, osd_drive)
-
-            osd_config['devices'].append(osd_drive_device_name)
-            osd_config['dedicated_devices'].append(ssd_device_name)
+            mklvm.append('  device=$(ls -la ' + osd_drive_device_name + " |  awk -F \"../../\" '{ print $2 }')")
+            mklvm.append('  eval "wipefs -a /dev/${device}"')
+            mklvm.append('  sleep 2')
+            mklvm.append('  pvcreate ' + osd_drive_device_name)
+            mklvm.append('  vgcreate ceph_vg' + str(vg_index) + ' ' + osd_drive_device_name)
+            mklvm.append("  size=$(sudo fdisk -l /dev/${device} 2>/dev/null | grep -m1 \"Disk\" | awk '{print $5}')")
+            mklvm.append("  sizeb=`expr $((${size} * 99 / 100))`")
+            mklvm.append("  sizeb=`expr $((${sizeb} / 512 * 512))`")
+            mklvm.append('  lvcreate -n ceph_lv' + str(vg_index) + '_data -L ${sizeb}B ceph_vg' + str(vg_index))
+            mklvm.append('  sleep 2')
+            osd_config['lvm_volumes'].append({"data": "ceph_lv" + str(vg_index) + "_data",
+                                      "data_vg": "ceph_vg" + str(vg_index),
+                                      "db": "ceph_lv" + str(journal_index) + "-" + str(ind) + "_db",
+                                      "db_vg": "ceph_vg" + str(journal_index),
+                                      "wal": "ceph_lv" + str(journal_index) +  "-" + str(ind) + "_wal",
+                                      "wal_vg": "ceph_vg" + str(journal_index)})
+            ind += 1
         osd_index += num_osds_for_ssd
         remaining_ssds -= 1
+        vg_index += 1
+    mklvm.append("fi")
 
-    return osd_config
+    return osd_config, mklvm
 
 
 def get_pci_bus_number(spinner, controllers):
@@ -1429,15 +1500,31 @@ def change_physical_disk_state_wait(
         mode, controllers_to_physical_disk_ids)
 
     job_ids = []
-    if change_state_result['commit_required_ids']:
-        for controller_id in change_state_result['commit_required_ids']:
+    is_reboot_required = False
+    # Remove the line below to turn back on realtime conversion
+    is_reboot_required = True
+    conversion_results = change_state_result['conversion_results']
+    for controller_id in conversion_results.keys():
+        controller_result = conversion_results[controller_id]
+
+        if controller_result['is_reboot_required'] == RebootRequired.true:
+            is_reboot_required = True
+
+        if controller_result['is_commit_required']:
+            realtime = controller_result['is_reboot_required'] == \
+                RebootRequired.optional
+            # Remove the line below to turn back on realtime conversion
+            realtime = False
             job_id = drac_client.commit_pending_raid_changes(
-                controller_id, reboot=False, start_time=None)
+                controller_id,
+                reboot=False,
+                start_time=None,
+                realtime=realtime)
             job_ids.append(job_id)
 
     result = True
     if job_ids:
-        if change_state_result['is_reboot_required']:
+        if is_reboot_required:
             LOG.debug("Rebooting the node to apply configuration")
             job_id = drac_client.create_reboot_job()
             job_ids.append(job_id)
