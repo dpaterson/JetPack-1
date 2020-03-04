@@ -312,6 +312,12 @@ class Director(InfraHost):
 
         json_config = defaultdict(dict)
         for node in nodes:
+            # For any nodes defined in .properties where we want to explicitly
+            # skip iDRAC configuration alltogether, just skip adding
+            # them to json_config  below.
+            # For any discovered nodes iDRAC configuration will still proceed.
+            if node.skip_idrac_config:
+                continue
             if hasattr(node, 'idrac_ip'):
                 node_id = node.idrac_ip
             else:
@@ -813,7 +819,7 @@ class Director(InfraHost):
             self.setup_powermax_cinder(dell_powermax_iscsi_cinder_yaml)
         else:
             self.setup_powermax_cinder(dell_powermax_fc_cinder_yaml)
-      
+
         # Enable multiple backends now
         enabled_backends = "["
 
@@ -1052,7 +1058,7 @@ class Director(InfraHost):
             'sed -i "s|<powermax_port_groups>|' +
             self.settings.powermax_port_groups + '|" ' + powermax_cinder_yaml,
             'sed -i "s|<powermax_srp>|' +
-            self.settings.powermax_srp + '|" ' + powermax_cinder_yaml,            
+            self.settings.powermax_srp + '|" ' + powermax_cinder_yaml,
         ]
         for cmd in cmds:
             self.run_tty(cmd)
@@ -1325,7 +1331,7 @@ class Director(InfraHost):
                            computehci_storage_ips + "/\" " + static_ips_yaml,
                            'sed -i "/DellComputeHCIIPs:/,/storage_mgmt:/s/storage_mgmt:/storage_mgmt: \\n' +
                            computehci_cluster_ips + "/\" " + static_ips_yaml
-                          ]) 
+                          ])
             for cmd in cmds:
                 self.run_tty(cmd)
 

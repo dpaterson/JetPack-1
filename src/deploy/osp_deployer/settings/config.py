@@ -375,12 +375,12 @@ class Settings():
 
         # unity
         if backend_settings['enable_unity_backend'].lower() == 'true':
-           
-            if (backend_settings['unity_storage_protocol'] != 'iSCSI' and  
-               backend_settings['unity_storage_protocol'] != 'FC'): 
+
+            if (backend_settings['unity_storage_protocol'] != 'iSCSI' and
+               backend_settings['unity_storage_protocol'] != 'FC'):
                   error_msg = "Invalid Unity Storage Protocol " + \
                       "in your ini file '" + backend_settings['unity_storage_protocol'] + \
-                      "'. Valid protocols are iSCSI or FC" 
+                      "'. Valid protocols are iSCSI or FC"
                   raise AssertionError(error_msg)
             self.enable_unity_backend = True
             self.cinder_unity_container_version = backend_settings[
@@ -730,6 +730,12 @@ class Settings():
                         node.skip_nic_config = True
                 except AttributeError:
                     node.skip_nic_config = False
+                    pass
+                try:
+                    if node.skip_idrac_config == "true":
+                        node.skip_idrac_config = True
+                except AttributeError:
+                    node.skip_idrac_config = False
                     pass
 
         Settings.settings = self

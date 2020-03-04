@@ -43,7 +43,7 @@
                 "valid_values": [
                    "false"
                 ]
-             }, 
+             },
        "sriov_vf_count": {
                 "validate": [
                    "should_be_valid_int"
@@ -74,7 +74,7 @@
                   "false"
                ]
             }
-        }         
+        }
     },
     {
          "Performance and Optimization": {
@@ -240,7 +240,17 @@
             },
          "use_ipmi_driver":"",
          "use_in_band_introspection":"",
-         "enable_version_locking":""
+         "enable_version_locking":"",
+         "use_custom_instack_json":"",
+         "custom_instack_json":"",
+         "internal_repos_locations":"",
+         "cloud_repo_dir":"",
+         "rhel_iso":"",
+         "overcloud_deploy_timeout":"",
+         "discovery_ram_disk_image":"",
+         "overcloud_image":"",
+         "pull_images_from_cdn":"",
+         "verify_rhsm_status":""
          }
       },
       {

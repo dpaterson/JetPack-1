@@ -221,8 +221,7 @@ def deploy():
         director_vm.setup_net_envt()
         director_vm.configure_dhcp_server()
         director_vm.node_discovery()
-        if args.skip_idrac_config is False:
-            director_vm.configure_idracs()
+        director_vm.configure_idracs()
         director_vm.import_nodes()
         director_vm.node_introspection()
         director_vm.update_sshd_conf()
