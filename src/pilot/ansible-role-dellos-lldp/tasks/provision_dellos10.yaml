@@ -1,0 +1,16 @@
+---
+# tasks file for Dellos10
+ - name: "Generating LLDP configuration for dellos10"
+   template:
+      src: dellos10_lldp.j2
+      dest: "{{ build_dir }}/lldp10_{{ hostname }}.conf.part"
+   when: (ansible_network_os is defined and ansible_network_os == "dellos10") and ((dellos_cfg_generate | default('False')) | bool)
+#   notify: save config os10
+   register: generate_output
+
+ - name: "Provisioning LLDP configuration for dellos10"
+   dellos10_config:
+      src: dellos10_lldp.j2
+   when: (ansible_network_os is defined and ansible_network_os == "dellos10")
+#   notify: save config os10
+   register: output

@@ -1,0 +1,9 @@
+---
+- hosts: dellos10
+  connection: network_cli
+  gather_facts: yes
+  # gather_facts: no
+  roles:
+     - Dell-Networking.dellos-lldp
+ 
+

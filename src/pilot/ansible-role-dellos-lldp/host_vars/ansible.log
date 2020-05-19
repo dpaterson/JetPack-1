@@ -1,0 +1,9 @@
+2020-05-19 09:54:50,060 p=20370 u=osp_admin |   20370 1589900090.06016: starting run
+2020-05-19 09:54:50,206 p=20370 u=osp_admin |  ansible-playbook 2.6.20
+  config file = /etc/ansible/ansible.cfg
+  configured module search path = [u'/home/osp_admin/.ansible/plugins/modules', u'/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python2.7/site-packages/ansible
+  executable location = /usr/bin/ansible-playbook
+  python version = 2.7.5 (default, Sep 26 2019, 13:23:47) [GCC 4.8.5 20150623 (Red Hat 4.8.5-39)]
+2020-05-19 09:54:50,206 p=20370 u=osp_admin |  Using /etc/ansible/ansible.cfg as config file
+2020-05-19 09:54:50,207 p=20370 u=osp_admin |  ERROR! the playbook: lldp-pb.yaml could not be found
