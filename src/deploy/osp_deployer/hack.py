@@ -146,8 +146,7 @@ def deploy():
         # server configuration
         director_vm.setup_net_envt()
         director_vm.configure_dhcp_server()
-        logger.info("Running node discovery & introspection")
-        director_vm.node_discovery()
+        logger.info("Running nodes import  & introspection")
         director_vm.import_nodes()
         director_vm.node_introspection()
 
