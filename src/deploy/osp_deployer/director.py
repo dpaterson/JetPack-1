@@ -230,6 +230,7 @@ class Director(InfraHost):
 
         tester = Checkpoints()
         tester.verify_undercloud_installed()
+        self.enable_lldp()
 
     def upload_cloud_images(self):
         if self.settings.pull_images_from_cdn is False:
@@ -1913,3 +1914,18 @@ class Director(InfraHost):
                 sriov_conf.update({int_name: int_value})
         sriov_interfaces = [x[1] for x in sorted(sriov_conf.items())]
         return sriov_interfaces
+
+    def enable_lldp(self):
+        if self.settings.enable_lldp is False:
+            logger.debug("Not enabling LLDP on switches")
+            return
+        else:
+            logger.debug("Enabling LLDP on switches")
+            if (self.settings.switches) != 3:
+                raise Exception("Should have at least x3 switches defined"
+                                 " in properties to enable LLDP")
+            cmd = 'sudo ansible-galaxy install Dell-Networking.dellos-lldp'
+            self.run_tty(cmd)
+
+            
+

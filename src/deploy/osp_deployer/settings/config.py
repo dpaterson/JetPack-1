@@ -495,6 +495,12 @@ class Settings:
             self.use_in_band_introspection = True
         else:
             self.use_in_band_introspection = False
+
+        if dev_settings['enable_switches_lldp'].lower() == 'true':
+            self.enable_lldp = True
+        else:
+            self.enable_lldp = False
+
         self.cloud_repo_dir = dev_settings['cloud_repo_dir']
 
         if dev_settings['pull_images_from_cdn'].lower() == 'true':
