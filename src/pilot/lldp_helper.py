@@ -35,7 +35,7 @@ class LLDPHelper():
         tab = ret.split("\n")
         ls = tab[3:]
         for interface in ls:
-            print(interface)
+            #print(interface)
             info = interface.split('|')
             if len(info) < 2:
                 pass
@@ -53,7 +53,8 @@ class LLDPHelper():
         lldp_data = self.get_node_basic_lldp_data(idrac_ip)
         connected = []
         for each in lldp_data:
-            if  "None" in each.switch_port :
+            #print("." +  str(each.interface) + " :: " + str(each.swith_chasis))
+            if "None" in each.switch_port :
                 pass
                 #print (each.interface + " present but not connected to switch")
             else:
@@ -64,10 +65,12 @@ class LLDPHelper():
     def verify_interface_connected(self,idrac_ip, interface):
         connected = self.get_connected_interfaces(idrac_ip)
         if interface in connected:
-            pass
+            print("Found Connected interface : " + str(interface) + " to " + self.get_interface_switch_chasis(idrac_ip, interface))
+            return True
         else:
             print( interface + " NOT present/Connected")
-            print("Found interfaces : " + str(connected))
+            return False
+
 
     def get_interface_switch_chasis(self, idrac_ip, interface):
         data = self.get_node_basic_lldp_data(idrac_ip)

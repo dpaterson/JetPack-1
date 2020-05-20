@@ -190,18 +190,20 @@ def deploy():
         logger.info("Discovering nodes")
         director_vm.node_discovery()
         logger.info("Configuring iDRACs")
-        director_vm.configure_idracs()
+        #director_vm.configure_idracs()
         logger.info("Importing nodes")
         director_vm.import_nodes()
         logger.info("Introspecting nodes")
         director_vm.node_introspection()
+        logger.info("Configuring heat templates")
+        director_vm.setup_templates()
+        # Verify LLDP data if enabled
+        director.verify_lldp_data()
         logger.info("Assigning roles")
         director_vm.update_sshd_conf()
         director_vm.assign_node_roles()
         director_vm.revert_sshd_conf()
 
-        logger.info("Configuring heat templates")
-        director_vm.setup_templates()
 
         logger.info("=== Installing the overcloud ")
         logger.debug("installing the overcloud ... this might take a while")

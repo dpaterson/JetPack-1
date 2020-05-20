@@ -1916,6 +1916,7 @@ class Director(InfraHost):
         return sriov_interfaces
 
     def enable_lldp(self):
+        return
         if self.settings.enable_lldp is False:
             logger.debug("Not enabling LLDP on switches")
             return
@@ -1926,6 +1927,26 @@ class Director(InfraHost):
                                  " in properties to enable LLDP")
             cmd = 'sudo ansible-galaxy install Dell-Networking.dellos-lldp'
             self.run_tty(cmd)
+
+            # ....TODO
+
+    def verify_lldp_data(self):
+        if self.settings.enable_lldp is False:
+            logger.debug("Skipping LLDP checks")
+        else:
+            nic_template = os.path.join(self.nic_configs_dir, self.settings.nic_env_file)
+            for node in self.settings.controller_nodes:
+                logger.info("Check controller nodes LLDP data")
+                cmd = ('source ~/stackrc;cd ~/pilot;python3 check_lldp_data.py --ip_mac_service_tag "' + node.idrac_ip  + '" --role "Controller" --nic-template ' + nic_template)
+                self.run(cmd)
+            for node in self.settings.compute_nodes:
+                logger.info("Check compute nodes LLDP data")
+                cmd = ('source ~/stackrc;cd ~/pilot;python3 check_lldp_data.py --ip_mac_service_tag "' + node.idrac_ip  + '" --role "Compute" --nic-template ' + nic_template)
+                self.run(cmd) 
+            for node in self.settings.ceph_nodes:
+                logger.info("Check ceph nodes LLDP data")
+                cmd = ('source ~/stackrc;cd ~/pilot;python3 check_lldp_data.py --ip_mac_service_tag "' + node.idrac_ip  + '" --role "Storage" --nic-template ' + nic_template)
+                self.run(cmd)
 
             
 
