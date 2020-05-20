@@ -1,0 +1,4 @@
+---
+# vars file for Dell-Networking.dellos-lldp
+ansible_ssh_user: admin
+ansible_ssh_pass: admin

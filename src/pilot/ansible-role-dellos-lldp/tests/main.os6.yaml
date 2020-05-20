@@ -1,0 +1,25 @@
+---
+# vars file for Dell-Networking.dellos-lldp, below gives a sample configuration
+# Sample variables for dellos6 device
+dellos_lldp:
+  timers:
+    reinit:
+    interval:
+    hold:
+  notification_interval: 7
+  advertise:
+    med:
+      global_med: true
+      fast_start_repeat_count: 7
+      confignotification: true
+  local_interface:
+    gigabitethernet 1/0/1:
+      mode:
+        tx: true
+        rx: false
+      notification: true
+      transmit: false
+      advertise:
+        med:
+          confignotification: true
+          enable: true
