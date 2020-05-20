@@ -19,6 +19,9 @@ from checkpoints import Checkpoints
 from collections import defaultdict
 from infra_host import InfraHost
 from auto_common import Scp
+from collections import OrderedDict
+from auto_common.yaml_utils import OrderedDumper
+from auto_common.yaml_utils import OrderedLoader
 import json
 import logging
 import os
@@ -1916,19 +1919,133 @@ class Director(InfraHost):
         return sriov_interfaces
 
     def enable_lldp(self):
-        return
         if self.settings.enable_lldp is False:
-            logger.debug("Not enabling LLDP on switches")
+            logger.debug("Not enabling LLDP on switches and idracs")
             return
         else:
-            logger.debug("Enabling LLDP on switches")
-            if (self.settings.switches) != 3:
+            logger.info("Enabling LLDP on switches and iDRACs, switches: %s"
+                         % str(self.settings.switches))
+            logger.info("Enabling LLDP on switches and iDRACs, switches: %s"
+                         % str(len(self.settings.switches)))
+            if len(self.settings.switches) < 3:
                 raise Exception("Should have at least x3 switches defined"
-                                 " in properties to enable LLDP")
-            cmd = 'sudo ansible-galaxy install Dell-Networking.dellos-lldp'
-            self.run_tty(cmd)
+                                " in properties to enable LLDP")
+            self.enable_lldp_switches()
+            self.enable_lldp_idracs()
 
-            # ....TODO
+    def enable_lldp_switches(self):
+        # setup lldp ansible environment
+        cmd = (self.pilot_dir
+               + "/ansible-role-dellos-lldp/setup-ansible-lldp-env.sh")
+        self.run_tty(cmd)
+        # generate input for ansible
+        self.generate_and_upload_lldp_ansible_conf()
+
+    def generate_and_upload_lldp_ansible_conf(self):
+        setts = self.settings
+        switches = setts.switches
+        if not switches:
+            return
+        inventory = OrderedDict()
+        host_groups = []
+        inv_file = "inventory.yaml"
+        inv_local_file = os.path.join("/root", inv_file)
+        inv_remote_file = os.path.join(self.pilot_dir,
+                                       "ansible-role-dellos-lldp",
+                                       inv_file)
+        lldp_pb_file = "lldp_pb.yaml"
+        lldp_pb_local_file = os.path.join("/root", lldp_pb_file)
+        lldp_pb_remote_file = os.path.join(self.pilot_dir,
+                                           "ansible-role-dellos-lldp",
+                                            lldp_pb_file)
+        for switch in switches:
+
+            if switch.os not in inventory:
+                inventory[switch.os] = OrderedDict()
+                host_groups.append(switch.os)
+            host = OrderedDict({
+                "hostname": switch.switch_name,
+                "ansible_host": switch.ip,
+                "ansible_ssh_user": switch.user,
+                "ansible_ssh_pass": switch.password,
+                "ansible_network_os": switch.os
+            })
+
+            inventory[switch.os][switch.switch_name] = host
+        with open(inv_local_file, 'w+') as stg_inv_fp:
+            yaml.dump(inventory, stg_inv_fp, OrderedDumper,
+                      default_flow_style=False)
+
+        pb_yaml = [OrderedDict(
+            {"hosts": ":".join(map(str, host_groups)),
+              "roles": ["Dell-Networking.dellos-lldp"]})
+            ]
+        with open(lldp_pb_local_file, 'w+') as stg_lldp_pb_fp:
+            yaml.dump(pb_yaml, stg_lldp_pb_fp, OrderedDumper,
+                      default_flow_style=False)
+
+        self.upload_file(inv_local_file, inv_remote_file)
+        logger.info("Inventory file uploaded: %s" % inv_remote_file)
+
+        self.upload_file(lldp_pb_local_file, lldp_pb_remote_file)
+        logger.info("Playbook file uploaded: %s" % lldp_pb_remote_file)
+
+        #webservers:dbservers
+        for switch_os in inventory.keys():
+            group_file = switch_os + ".yaml"
+            group_local_file = os.path.join("/root", group_file)
+            group_remote_file = os.path.join(self.pilot_dir,
+                                             "ansible-role-dellos-lldp",
+                                             "group_vars",
+                                             group_file)
+            if switch_os == "dellos9":
+                group_vars = OrderedDict({
+                    "ansible_network_os": switch_os,
+                    "build_dir": switch_os,
+                    "dellos_lldp": {
+                        "global_lldp_state": "present",
+                        "enable": True,
+                        "hello": 6,
+                        "management_interface": {
+                            "hello": 7,
+                            "multiplier": 3,
+                            "enable": True,
+                            "advertise": {
+                                "port_descriptor": True,
+                                "management_tlv":
+                                    "management-address system-capabilities",
+                                "management_tlv_state": "present"}},
+                        "advertise": {
+                            "dot1_tlv": {
+                                "port_tlv": {
+                                    "protocol_vlan_id": True,
+                                    "port_vlan_id": True
+                                },
+                                "vlan_tlv": {
+                                    "vlan_range": "110,120,130,140,170,180"
+                                 }
+                            },
+                            "dot3_tlv": {
+                                "max_frame_size": False
+                            },
+                            "port_descriptor": True,
+                            "management_tlv":
+                                "system-capabilities "
+                                "system-description system-name",
+                            "management_tlv_state": "present"
+                        }
+                    }
+                })
+
+            with open(group_local_file, 'w+') as stg_group_fp:
+                yaml.dump(group_vars, stg_group_fp, OrderedDumper,
+                          default_flow_style=False)
+
+            self.upload_file(group_local_file, group_remote_file)
+            logger.info("Group vars file uploaded: %s" % group_remote_file)
+
+    def enable_lldp_idracs(self):
+        return
 
     def verify_lldp_data(self):
         if self.settings.enable_lldp is False:
@@ -1942,11 +2059,8 @@ class Director(InfraHost):
             for node in self.settings.compute_nodes:
                 logger.info("Check compute nodes LLDP data")
                 cmd = ('source ~/stackrc;cd ~/pilot;python3 check_lldp_data.py --ip_mac_service_tag "' + node.idrac_ip  + '" --role "Compute" --nic-template ' + nic_template)
-                self.run(cmd) 
+                self.run(cmd)
             for node in self.settings.ceph_nodes:
                 logger.info("Check ceph nodes LLDP data")
                 cmd = ('source ~/stackrc;cd ~/pilot;python3 check_lldp_data.py --ip_mac_service_tag "' + node.idrac_ip  + '" --role "Storage" --nic-template ' + nic_template)
                 self.run(cmd)
-
-            
-

@@ -96,6 +96,11 @@ def deploy():
     logger.debug("=================================")
     try:
         settings, args = get_settings()
+        director_vm = Director()
+        logger.info("configure lldp")
+        director_vm.enable_lldp()
+        logger.info("configure lldp done, exit!")
+        os._exit(0)
         if args.validate_only is True:
             logger.info("Only validating ini/properties config values")
         else:
