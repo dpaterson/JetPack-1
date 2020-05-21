@@ -22,6 +22,7 @@ from auto_common import Scp
 from collections import OrderedDict
 from auto_common.yaml_utils import OrderedDumper
 from auto_common.yaml_utils import OrderedLoader
+import itertools
 import json
 import logging
 import os
@@ -1923,10 +1924,8 @@ class Director(InfraHost):
             logger.debug("Not enabling LLDP on switches and idracs")
             return
         else:
-            logger.info("Enabling LLDP on switches and iDRACs, switches: %s"
-                         % str(self.settings.switches))
-            logger.info("Enabling LLDP on switches and iDRACs, switches: %s"
-                         % str(len(self.settings.switches)))
+            logger.info("Enabling LLDP on %s switches and all iDRACs"
+                        % str(len(self.settings.switches)))
             if len(self.settings.switches) < 3:
                 raise Exception("Should have at least x3 switches defined"
                                 " in properties to enable LLDP")
@@ -1940,6 +1939,7 @@ class Director(InfraHost):
         self.run_tty(cmd)
         # generate input for ansible
         self.generate_and_upload_lldp_ansible_conf()
+        self.run_lldp_playbook()
 
     def generate_and_upload_lldp_ansible_conf(self):
         setts = self.settings
@@ -1978,7 +1978,7 @@ class Director(InfraHost):
 
         pb_yaml = [OrderedDict(
             {"hosts": ":".join(map(str, host_groups)),
-              "roles": ["Dell-Networking.dellos-lldp"]})
+             "roles": ["Dell-Networking.dellos-lldp"]})
             ]
         with open(lldp_pb_local_file, 'w+') as stg_lldp_pb_fp:
             yaml.dump(pb_yaml, stg_lldp_pb_fp, OrderedDumper,
@@ -1990,7 +1990,6 @@ class Director(InfraHost):
         self.upload_file(lldp_pb_local_file, lldp_pb_remote_file)
         logger.info("Playbook file uploaded: %s" % lldp_pb_remote_file)
 
-        #webservers:dbservers
         for switch_os in inventory.keys():
             group_file = switch_os + ".yaml"
             group_local_file = os.path.join("/root", group_file)
@@ -2044,23 +2043,49 @@ class Director(InfraHost):
             self.upload_file(group_local_file, group_remote_file)
             logger.info("Group vars file uploaded: %s" % group_remote_file)
 
+    def run_lldp_playbook(self):
+        pb_cmd = "ansible-playbook -vvvv -i inventory.yaml lldp_pb.yaml"
+        ansible_path = os.path.join(self.pilot_dir,
+                                    "ansible-role-dellos-lldp")
+
+        cmd = ("source ~/stackrc; cd {}; {}".format(ansible_path,
+                                                    pb_cmd))
+        logger.info("Running ansible playbook, command: %s" % cmd)
+        self.run(cmd)
+
     def enable_lldp_idracs(self):
-        return
+        setts = self.settings
+        for node in itertools.chain(setts.controller_nodes,
+                                    setts.compute_nodes,
+                                    setts.ceph_nodes):
+            lldp_cmd = ("python3 ./idrac_lldp.py -u root -p Dell0SS! -e "
+                        + node.idrac_ip)
+            cmd = ("source ~/stackrc; cd ~/pilot; {}".format(lldp_cmd))
+            logger.info("Enabling lldp iDRAC attributes on: %s" % cmd)
+            self.run(cmd)
 
     def verify_lldp_data(self):
         if self.settings.enable_lldp is False:
             logger.debug("Skipping LLDP checks")
         else:
-            nic_template = os.path.join(self.nic_configs_dir, self.settings.nic_env_file)
+            nic_template = os.path.join(self.nic_configs_dir,
+                                        self.settings.nic_env_file)
             for node in self.settings.controller_nodes:
                 logger.info("Check controller nodes LLDP data")
-                cmd = ('source ~/stackrc;cd ~/pilot;python3 check_lldp_data.py --ip_mac_service_tag "' + node.idrac_ip  + '" --role "Controller" --nic-template ' + nic_template)
+                cmd = ('source ~/stackrc;cd ~/pilot;python3 check_lldp_data.py'
+                       ' --ip_mac_service_tag "' + node.idrac_ip
+                       + '" --role "Controller" --nic-template '
+                       + nic_template)
                 self.run(cmd)
             for node in self.settings.compute_nodes:
                 logger.info("Check compute nodes LLDP data")
-                cmd = ('source ~/stackrc;cd ~/pilot;python3 check_lldp_data.py --ip_mac_service_tag "' + node.idrac_ip  + '" --role "Compute" --nic-template ' + nic_template)
+                cmd = ('source ~/stackrc;cd ~/pilot;python3 check_lldp_data.py'
+                       ' --ip_mac_service_tag "' + node.idrac_ip
+                       + '" --role "Compute" --nic-template ' + nic_template)
                 self.run(cmd)
             for node in self.settings.ceph_nodes:
                 logger.info("Check ceph nodes LLDP data")
-                cmd = ('source ~/stackrc;cd ~/pilot;python3 check_lldp_data.py --ip_mac_service_tag "' + node.idrac_ip  + '" --role "Storage" --nic-template ' + nic_template)
+                cmd = ('source ~/stackrc;cd ~/pilot;python3 check_lldp_data.py'
+                       ' --ip_mac_service_tag "' + node.idrac_ip
+                       + '" --role "Storage" --nic-template ' + nic_template)
                 self.run(cmd)
