@@ -26,6 +26,7 @@ from logging_helper import LoggingHelper
 from time import sleep
 from utils import Utils
 from lldp_helper import LLDPHelper
+import re
 
 LOG = logging.getLogger(os.path.splitext(os.path.basename(sys.argv[0]))[0])
 
@@ -80,6 +81,7 @@ def Validate_LLDP(ip_service_tag, nic_template, role):
     helper = LLDPHelper()
     template = get_nic_template(nic_template)
     errors = []
+    bonds = {}
     for each in template:
         if role.lower() in each.lower():
             if "Interface" in each:
@@ -87,20 +89,41 @@ def Validate_LLDP(ip_service_tag, nic_template, role):
                     pass
                 else:
                     interface = each.split(":")[1].strip()
-                    print ("Checking " + str(interface))
                     status = helper.verify_interface_connected(ip_service_tag, interface)
                     if status is False:
-                        errors.append(interface)
+                        errors.append(interface + "is not conneted (" + each.rstrip() + " )" )
+                    p = re.search("Bond[0-9]", each)
+                    if p:
+                        found = p.group(0)
+                        print(" Found bond interface " + found + " :: " + interface)
+                        if found not in bonds:
+                            bonds[found] = []
+                        bonds[found].append(interface)
+
+    for each in bonds:
+            print ("Checking " + each + " interfaces are conneted to different switches")
+            switches = []
+            for interface in bonds[each]:
+                switchID = helper.get_interface_switch_chasis(ip_service_tag, interface)
+                print(".." + interface + " :: " + switchID)
+                if switchID not in switches:
+                    switches.append(switchID)
+            if len(switches) != len(bonds[each]):
+                msg = "Interfaces from bond " + each + " appear to be connected to the same switch " + str(switchID)
+                print (msg)
+                errors.append(msg)
+            else : 
+                print("Interfaces from bond " + each + "are connected to different switches " + str(switchID))
+
     if len(errors) > 0:
-        LOG.exception("Some interfaces were not connected  {}: "
-                      "{}".format(ip_service_tag, str(errors)))
+        LOG.exception("Some errors were found validating " + role + " node {} : \n"
+                      "{}".format(ip_service_tag, '\n'.join(errors)))
 
 
 
 def main():
 
     args = parse_arguments()
-    print(" > " + str(args))
     LoggingHelper.configure_logging(args.logging_level)
 
     try:
@@ -116,7 +139,7 @@ def main():
             args.ip_mac_service_tag, ex.message))
         sys.exit(1)
     except Exception as ex:
-        LOG.exception("An error occurred while Validating LLDP data for node {}: "
+        LOG.exception("An error occurred while Validating LLDP data for " + role +  "node {}: "
                       "{}".format(args.ip_mac_service_tag, ex.message))
         sys.exit(1)
 
