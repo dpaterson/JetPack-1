@@ -4068,22 +4068,12 @@ class Director(InfraHost):
                                       EDGE_COMMON_PATH,
                                       CONTROL_PLANE_EXPORT + ".yaml")
         cmd = "cd ; {} ".format(self.source_stackrc)
-        cmd += "openstack overcloud deploy --stack {nt_lower} --debug -t 60 "
+        # TODO: dpaterson, parameterize the -t deploy timeout arg
+        cmd += "openstack overcloud deploy --stack {nt_lower} --debug -t 120 "
         cmd += "--templates {oc_tempates} "
         cmd += "--log-file {} ".format(log_file)
         cmd += "-r {} ".format(roles_file)
         cmd += "-n {} ".format(nd_file)
-        """
-        cmd += "-e {} ".format(os.path.join(self.templates_overcloud_dir,
-                                            "environments",
-                                            "disable-telemetry.yaml"))
-        cmd += "-e {} ".format(os.path.join(self.templates_overcloud_dir,
-                                            "environments",
-                                            "podman.yaml"))
-        cmd += "-e {} ".format(os.path.join(self.templates_overcloud_dir,
-                                            "environments", "ceph-ansible"
-                                            "ceph-ansible.yaml"))
-        """
         cmd += "-e {} ".format(os.path.join(self.templates_overcloud_dir,
                                             "environments",
                                             "cinder-volume-active-active.yaml")
